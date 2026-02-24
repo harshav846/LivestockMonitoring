@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Worker Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dashboard-body">
+
+    <div class="sidebar">
+        <h2>Worker Panel</h2>
+        <ul>
+            <li>Dashboard</li>
+            <li>View Alerts</li>
+            <li><a href="/">Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <h1>Livestock Monitoring</h1>
+
+        <div class="card-container">
+
+            <div class="card">
+                <h3>Total Livestock</h3>
+                <p class="big-number">42</p>
+            </div>
+
+            <div class="card alert-card">
+                <h3>Recent Alerts</h3>
+                <ul>
+                    <li>Cow entered restricted zone</li>
+                    <li>Cow exited through Gate 2</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

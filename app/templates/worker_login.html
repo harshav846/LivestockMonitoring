@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Worker Login</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-body">
+
+    <div class="login-container">
+        <h2>Worker Login</h2>
+
+        <form method="POST" action="/worker_login">
+            <input type="text" name="username" placeholder="Worker ID" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="submit" class="btn secondary">Login</button>
+        </form>
+
+        <a href="/" class="back-link">← Back to Home</a>
+    </div>
+
+</body>
+</html>

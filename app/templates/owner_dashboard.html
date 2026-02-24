@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owner Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dashboard-body">
+
+    <div class="sidebar">
+        <h2>Owner Panel</h2>
+        <ul>
+            <li onclick="showSection('dashboard')">Dashboard</li>
+            <li onclick="showSection('live')">Live Monitoring</li>
+            <li onclick="showSection('alerts')">View Alerts</li>
+            <li><a href="/">Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active">
+            <h1>Dashboard Overview</h1>
+
+            <div class="card-container">
+                <div class="card">
+                    <h3>Total Livestock</h3>
+                    <p class="big-number">42</p>
+                </div>
+
+                <div class="card">
+                    <h3>Active Session</h3>
+                    <p>Running</p>
+                    <button class="btn">Stop Session</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Monitoring Section -->
+        <div id="live" class="section">
+            <h1>Live Monitoring</h1>
+
+            <div class="video-container">
+                <img src="{{ url_for('main.video_feed') }}"
+                     alt="Live Stream" 
+                     class="live-video">
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div id="alerts" class="section">
+            <h1>Recent Alerts</h1>
+            <div class="card alert-card">
+                <ul>
+                    <li>Cow entered restricted zone</li>
+                    <li>Cow exited through Gate 2</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+function showSection(id) {
+    let sections = document.querySelectorAll(".section");
+    sections.forEach(section => section.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+</script>
+
+</body>
+</html>

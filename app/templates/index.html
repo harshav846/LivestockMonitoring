@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Livestock Monitoring</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <video autoplay muted loop id="bg-video">
+        <source src="{{ url_for('static', filename='videos/cattle_eating.mp4') }}"
+                type="video/mp4">
+    </video>
+
+    <div class="overlay">
+        <h1>Smart Livestock Monitoring System</h1>
+        <p>AI-powered real-time livestock tracking and farm security.</p>
+
+        <div class="buttons">
+            <a href="/owner_login" class="btn">Owner Login</a>
+            <a href="/worker_login" class="btn secondary">Worker Login</a>
+        </div>
+    </div>
+
+</body>
+</html>
