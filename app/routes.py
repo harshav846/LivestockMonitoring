@@ -401,21 +401,21 @@ def live_stream():
                 if not ret:
                     continue
 
-                frame = cv2.resize(frame, (960, 720))
+                frame = cv2.resize(frame, (640, 480))
 
                 results = model.track(
                     frame,
                     tracker="bytetrack.yaml",
                     persist=True,
                     conf=0.45,
-                    classes=[0],
-                    imgsz=960,
+                    classes=[0], # Cow
+                    imgsz=640,
                     verbose=False
                 )
 
                 # ENTRY ZONE
-                ENTRY_X1, ENTRY_Y1 = 400, 400
-                ENTRY_X2, ENTRY_Y2 = 800, 520
+                ENTRY_X1, ENTRY_Y1 = 300, 300
+                ENTRY_X2, ENTRY_Y2 = 600, 450
 
                 cv2.rectangle(frame, (ENTRY_X1, ENTRY_Y1),
                               (ENTRY_X2, ENTRY_Y2), (0, 0, 255), 2)
@@ -516,81 +516,85 @@ def security_stream():
 
         notified_intrusions = set()
         
-        # DEFINE SECURITY ZONES (Rectangles)
-        SEC_ZONE_1 = (0, 100, 250, 620)   # Left Restricted Area
-        SEC_ZONE_2 = (710, 100, 960, 620) # Right Restricted Area
+        # DEFINE SECURITY ZONES (Rectangles - Scaled for 640x480)
+        SEC_ZONE_1 = (0, 80, 180, 460)   # Left Restricted Area
+        SEC_ZONE_2 = (460, 80, 640, 460) # Right Restricted Area
 
-        try:
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    continue
+        def stream_logic():
+            try:
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        continue
 
-                frame = cv2.resize(frame, (960, 720))
+                    frame = cv2.resize(frame, (640, 480))
 
-                # Track Humans(0) and Cows(19)
-                results = model.track(
-                    frame,
-                    tracker="bytetrack.yaml",
-                    persist=True,
-                    conf=0.4,
-                    classes=[0, 19], 
-                    imgsz=960,
-                    verbose=False
-                )
+                    # Track Humans(0) and Cows(19)
+                    results = model.track(
+                        frame,
+                        tracker="bytetrack.yaml",
+                        persist=True,
+                        conf=0.4,
+                        classes=[0, 19], 
+                        imgsz=640,
+                        verbose=False
+                    )
 
-                # Draw Security Zones (RED)
-                cv2.rectangle(frame, (SEC_ZONE_1[0], SEC_ZONE_1[1]), (SEC_ZONE_1[2], SEC_ZONE_1[3]), (0, 0, 255), 3)
-                cv2.putText(frame, "RESTRICTED: L", (SEC_ZONE_1[0]+5, SEC_ZONE_1[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
-                
-                cv2.rectangle(frame, (SEC_ZONE_2[0], SEC_ZONE_2[1]), (SEC_ZONE_2[2], SEC_ZONE_2[3]), (0, 0, 255), 3)
-                cv2.putText(frame, "RESTRICTED: R", (SEC_ZONE_2[0]+5, SEC_ZONE_2[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
+                    # Draw Security Zones (RED)
+                    cv2.rectangle(frame, (SEC_ZONE_1[0], SEC_ZONE_1[1]), (SEC_ZONE_1[2], SEC_ZONE_1[3]), (0, 0, 255), 3)
+                    cv2.putText(frame, "RESTRICTED: L", (SEC_ZONE_1[0]+5, SEC_ZONE_1[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
+                    
+                    cv2.rectangle(frame, (SEC_ZONE_2[0], SEC_ZONE_2[1]), (SEC_ZONE_2[2], SEC_ZONE_2[3]), (0, 0, 255), 3)
+                    cv2.putText(frame, "RESTRICTED: R", (SEC_ZONE_2[0]+5, SEC_ZONE_2[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
 
-                if results[0].boxes.id is not None:
-                    boxes = results[0].boxes.xyxy.cpu()
-                    ids = results[0].boxes.id.cpu()
-                    cls_ids = results[0].boxes.cls.cpu()
+                    if results[0].boxes.id is not None:
+                        boxes = results[0].boxes.xyxy.cpu()
+                        ids = results[0].boxes.id.cpu()
+                        cls_ids = results[0].boxes.cls.cpu()
 
-                    for box, track_id, cls_id in zip(boxes, ids, cls_ids):
-                        x1, y1, x2, y2 = map(int, box)
-                        track_id = int(track_id)
-                        label = "Cow" if int(cls_id) == 19 else "Intruder"
+                        for box, track_id, cls_id in zip(boxes, ids, cls_ids):
+                            x1, y1, x2, y2 = map(int, box)
+                            track_id = int(track_id)
+                            label = "Cow" if int(cls_id) == 19 else "Intruder"
 
-                        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
-                        # Check intrusion in either zone
-                        in_zone_1 = SEC_ZONE_1[0] < cx < SEC_ZONE_1[2] and SEC_ZONE_1[1] < cy < SEC_ZONE_1[3]
-                        in_zone_2 = SEC_ZONE_2[0] < cx < SEC_ZONE_2[2] and SEC_ZONE_2[1] < cy < SEC_ZONE_2[3]
+                            # Check intrusion in either zone
+                            in_zone_1 = SEC_ZONE_1[0] < cx < SEC_ZONE_1[2] and SEC_ZONE_1[1] < cy < SEC_ZONE_1[3]
+                            in_zone_2 = SEC_ZONE_2[0] < cx < SEC_ZONE_2[2] and SEC_ZONE_2[1] < cy < SEC_ZONE_2[3]
 
-                        if (in_zone_1 or in_zone_2) and track_id not in notified_intrusions:
-                            timestamp = datetime.now().strftime("%I:%M:%S %p")
-                            alert_msg = f"🚨 SECURITY BREACH! {label} (ID {track_id}) entered restricted zone at {timestamp}."
-                            
-                            # Add to global alerts for dash view
-                            if alert_msg not in latest_alerts:
-                                latest_alerts.append(alert_msg)
-                            
-                            # IMMEDIATE NOTIFICATION
-                            send_email_alert(alert_msg)
-                            notified_intrusions.add(track_id)
+                            if (in_zone_1 or in_zone_2) and track_id not in notified_intrusions:
+                                timestamp = datetime.now().strftime("%I:%M:%S %p")
+                                alert_msg = f"🚨 SECURITY BREACH! {label} (ID {track_id}) entered restricted zone at {timestamp}."
+                                
+                                # Add to global alerts for dash view
+                                if alert_msg not in latest_alerts:
+                                    latest_alerts.append(alert_msg)
+                                
+                                # IMMEDIATE NOTIFICATION
+                                send_email_alert(alert_msg)
+                                notified_intrusions.add(track_id)
 
-                        # DRAW ON FRAME
-                        color = (0, 0, 255) if (in_zone_1 or in_zone_2) else (0, 255, 0)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                        cv2.putText(frame, f"{label} ID {track_id}", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                            # DRAW ON FRAME
+                            color = (0, 0, 255) if (in_zone_1 or in_zone_2) else (0, 255, 0)
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                            cv2.putText(frame, f"{label} ID {track_id}", (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-                ret, jpeg = cv2.imencode('.jpg', frame)
-                if not ret: continue
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+                    ret, jpeg = cv2.imencode('.jpg', frame)
+                    if not ret: continue
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
 
-        except Exception as e:
-            if not isinstance(e, GeneratorExit):
-                print("❌ Security stream error:", e)
-        finally:
-            cap.release()
+            except Exception as e:
+                if not isinstance(e, GeneratorExit):
+                    print("❌ Security stream error:", e)
+            finally:
+                cap.release()
+        
+        return stream_logic()
 
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 
 @main.route("/live_counts_ip")

@@ -9,8 +9,8 @@ MODEL_PATH = "ai_module/models/yolov8n.pt"  # Update relative path
 CONFIDENCE = 0.45
 COW_CLASS_ID = 19
 
-ENTRY_X1, ENTRY_Y1 = 400, 400
-ENTRY_X2, ENTRY_Y2 = 800, 520
+ENTRY_X1, ENTRY_Y1 = 300, 300
+ENTRY_X2, ENTRY_Y2 = 600, 450
 
 # Load YOLO model once
 model = YOLO(MODEL_PATH)
@@ -36,7 +36,7 @@ def run_frame_processing(video_path):
         if not ret:
             break
 
-        frame = cv2.resize(frame, (960, 720))
+        frame = cv2.resize(frame, (640, 480))
 
         results = model.track(
             frame,
@@ -44,7 +44,7 @@ def run_frame_processing(video_path):
             persist=True,
             conf=CONFIDENCE,
             classes=[COW_CLASS_ID],
-            imgsz=960,
+            imgsz=640,
             verbose=False
         )
 
