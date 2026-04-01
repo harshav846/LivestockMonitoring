@@ -5,7 +5,7 @@ from ultralytics import YOLO
 # CONFIGURATION
 # =========================
 #VIDEO_PATH = 0  # Use 0 for webcam OR mobile IP link
-VIDEO_PATH = "http://192.168.0.206:8080/video"
+VIDEO_PATH = "http://192.168.1.5:8080/video"
 
 MODEL_PATH = "yolov8n.pt"
 

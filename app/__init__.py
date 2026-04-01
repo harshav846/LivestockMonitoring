@@ -6,21 +6,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def create_app():
-    app = Flask(
-        __name__,
-        template_folder="templates",
-        static_folder="static"
-    )
-
-    # Secret key from environment variable
+    app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY")
 
-    # MongoDB connection
-    mongo_uri = os.getenv("MONGO_URI")
-    client = MongoClient(mongo_uri)
-    app.db = client.get_default_database()
+    client = MongoClient(os.getenv("MONGO_URI"))
 
-    # Register blueprint
+    # Choose your database name
+    app.db = client["livestock_db"]
+    print("Connected to DB:", client.list_database_names())
+
     from .routes import main
     app.register_blueprint(main)
 

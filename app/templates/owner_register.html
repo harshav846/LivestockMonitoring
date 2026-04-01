@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owner Registration</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-body">
+
+    <div class="login-container">
+        <h2>Owner Registration</h2>
+
+        <form method="POST" action="/owner_register">
+            <input type="text" name="name" placeholder="Full Name" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="text" name="mobile" placeholder="Mobile Number" required>
+            <input type="text" name="farm_name" placeholder="Farm Name" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="submit" class="btn">Register</button>
+        </form>
+
+        <a href="/owner_login" class="back-link">Already have an account? Login</a>
+    </div>
+
+</body>
+</html>

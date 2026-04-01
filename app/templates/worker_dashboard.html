@@ -7,17 +7,23 @@
 </head>
 <body class="dashboard-body">
 
-    <div class="sidebar">
-        <h2>Worker Panel</h2>
-        <ul>
-            <li>Dashboard</li>
-            <li>View Alerts</li>
-            <li><a href="/">Logout</a></li>
-        </ul>
-    </div>
+<!-- Mobile Header -->
+<div id="mobile-header">
+    <span>🛡️ Worker Panel</span>
+    <div class="hamburger" onclick="toggleSidebar()">☰</div>
+</div>
 
-    <div class="main-content">
-        <h1>Livestock Monitoring</h1>
+<div class="sidebar">
+    <h2>Worker Panel</h2>
+    <ul>
+        <li>Dashboard</li>
+        <li>View Alerts</li>
+        <li><a href="/">Logout</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <h1>Livestock Monitoring</h1>
 
         <div class="card-container">
 
@@ -37,5 +43,10 @@
         </div>
     </div>
 
+    <script>
+        function toggleSidebar() {
+            document.querySelector(".sidebar").classList.toggle("active");
+        }
+    </script>
 </body>
 </html>

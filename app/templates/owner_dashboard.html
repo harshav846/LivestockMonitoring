@@ -1,73 +1,595 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard</title>
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="dashboard-body">
+<body>
 
-    <div class="sidebar">
-        <h2>Owner Panel</h2>
-        <ul>
-            <li onclick="showSection('dashboard')">Dashboard</li>
-            <li onclick="showSection('live')">Live Monitoring</li>
-            <li onclick="showSection('alerts')">View Alerts</li>
-            <li><a href="/">Logout</a></li>
-        </ul>
+<!-- Mobile Header -->
+<div id="mobile-header">
+    <span>🛡️ Livestock Monitoring</span>
+    <div class="hamburger" onclick="toggleSidebar()">☰</div>
+</div>
+
+<div class="dashboard-body">
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <h2>Owner Panel</h2>
+    <ul>
+        <li id="menu-dashboard" class="active" onclick="showSection('dashboard')">Dashboard</li>
+        <li id="menu-video_analysis" onclick="showSection('video_analysis')">Video Analysis</li>
+        <li id="menu-security" onclick="showSection('security')">🛡️ Security Module</li>
+        <li id="menu-alerts" onclick="showSection('alerts')">View Alerts</li>
+        <li id="menu-session_history" onclick="showSection('session_history')">Session History</li>
+        <li><a href="{{ url_for('main.logout') }}">Logout</a></li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="section active">
+        <h1>Dashboard Overview</h1>
+        <div class="card-container">
+            <div class="card">
+                <h3>Total Livestock</h3>
+                <p id="dashboardTotal" class="big-number">0</p>
+            </div>
+            <div class="card">
+                <h3>Model Status</h3>
+                <p id="dashboardStatus">Idle</p>
+            </div>
+            <div class="card">
+                <h3>Standard Count Set</h3>
+                <input type="number" id="stdCountInput" style="width:100px; padding:5px; font-size:18px;">
+                <button onclick="updateStandardCount()" class="btn">Update</button>
+                <button onclick="testEmailManual()" class="btn" style="background-color: #27ae60; margin-left: 10px;">Test Email Alert</button>
+                <p id="stdCountStatus" style="font-size:14px; margin-top:5px;"></p>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-card">
+                <h4>Livestock Entry Trend</h4>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4>Source Distribution</h4>
+                <canvas id="sourceChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4>Entry vs Total Count</h4>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+
     </div>
 
-    <div class="main-content">
-
-        <!-- Dashboard Section -->
-        <div id="dashboard" class="section active">
-            <h1>Dashboard Overview</h1>
-
-            <div class="card-container">
-                <div class="card">
-                    <h3>Total Livestock</h3>
-                    <p class="big-number">42</p>
+    <!-- Security Section -->
+    <div id="security" class="section">
+        <h1>🛡️ Farm Security Module</h1>
+        <div class="card">
+            <h3>Boundary Monitoring</h3>
+            <p>Enter the IP address of the security camera to monitor restricted zones in real-time.</p>
+            <div style="margin-top:20px;">
+                <input type="text" id="securityIp" placeholder="http://192.168.1.XX:8080/video" style="width:70%; padding:10px; border-radius:5px; border:1px solid #ccc;">
+                <button onclick="startSecurityMonitoring()" class="btn">Start Monitoring</button>
+                <button onclick="stopSecurityMonitoring()" class="btn btn-danger">Stop</button>
+            </div>
+            
+            <div id="securityFeedContainer" style="margin-top:20px; border: 3px solid #e74c3c; border-radius: 10px; overflow: hidden; background: #000; position: relative;">
+                <img id="securityFeed" src="" style="width:100%; display:none;">
+                <div id="securityPlaceholder" style="height: 350px; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    Enter IP and click Start to monitor security zones
                 </div>
-
-                <div class="card">
-                    <h3>Active Session</h3>
-                    <p>Running</p>
-                    <button class="btn">Stop Session</button>
-                </div>
             </div>
         </div>
 
-        <!-- Live Monitoring Section -->
-        <div id="live" class="section">
-            <h1>Live Monitoring</h1>
-
-            <div class="video-container">
-                <img src="{{ url_for('main.video_feed') }}"
-                     alt="Live Stream" 
-                     class="live-video">
-            </div>
+        <div class="card">
+            <h3>Recent Security Logs</h3>
+            <ul id="securityLogList" style="list-style: none; padding: 0;">
+                <li style="color: #7f8c8d;">No intrusions detected in this session.</li>
+            </ul>
         </div>
-
-        <!-- Alerts Section -->
-        <div id="alerts" class="section">
-            <h1>Recent Alerts</h1>
-            <div class="card alert-card">
-                <ul>
-                    <li>Cow entered restricted zone</li>
-                    <li>Cow exited through Gate 2</li>
-                </ul>
-            </div>
-        </div>
-
     </div>
+
+
+    <!-- Video Analysis -->
+    <div id="video_analysis" class="section">
+        <h1>Video Analysis</h1>
+
+        <div class="video-flex-container">
+            <!-- Upload Video -->
+            <div class="card video-card">
+                <h3>Upload Video</h3>
+                <input type="file" id="videoInput" accept="video/*"><br><br>
+                <input type="number" id="uploadDuration" placeholder="Duration (mins)" style="width:120px; padding:5px;"><br><br>
+                <button onclick="uploadVideo()" class="btn">Upload & Analyze</button>
+                <p id="status" style="margin-top:15px;"></p>
+            </div>
+
+            <!-- Live IP Camera -->
+            <div class="card video-card">
+                <h3>Live Camera (IP)</h3>
+                <input type="text" id="cameraIP" placeholder="Enter mobile camera IP (e.g., http://192.168.1.5:8080/video)"><br><br>
+                <input type="number" id="liveDuration" placeholder="Duration (mins)" style="width:120px; padding:5px;"><br><br>
+                <button onclick="startLive()" class="btn">Start Live Analysis</button>
+                <button onclick="stopLive()" class="btn btn-danger">Stop Live</button>
+                <p id="liveStatus" style="margin-top:15px;"></p>
+            </div>
+        </div>
+
+        <!-- Processed Video Section -->
+        <div class="processed-video-container">
+            <!-- Uploaded Video Stream -->
+            <div id="videoResult" class="video-feed-box" style="display:none;">
+                <h4>Processed Video (Uploaded)</h4>
+                <img id="outputVideo">
+                <p id="videoCounts" style="color:white; font-size: 0.8rem; text-align: center; margin-top: 5px;"></p>
+            </div>
+
+            <!-- Live IP Camera Stream -->
+            <div id="liveResult" class="video-feed-box" style="display:none;">
+                <h4>Live Stream Video (IP Camera)</h4>
+                <img id="liveStream">
+                <p id="liveCounts" style="color:white; font-size: 0.8rem; text-align: center; margin-top: 5px;"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="alerts" class="section">
+        <h1>Recent Alerts</h1>
+        <div class="card alert-card">
+            <ul id="alertList"></ul>
+        </div>
+    </div>
+
+    <!-- Session History -->
+    <div id="session_history" class="section">
+        <h1>Session History</h1>
+        <div class="card table-container">
+            <table style="width:100%; text-align:left; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ccc;">
+                        <th style="padding:10px;">Date & Time</th>
+                        <th style="padding:10px;">Source</th>
+                        <th style="padding:10px;">Duration (Mins)</th>
+                        <th style="padding:10px;">Entry Count</th>
+                        <th style="padding:10px;">Total Count</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionTableBody">
+                    <!-- Sessions loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    </div> <!-- End Dashboard Body -->
 
 <script>
-function showSection(id) {
-    let sections = document.querySelectorAll(".section");
-    sections.forEach(section => section.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
+   // ---------------- ALERTS ----------------
+setInterval(() => {
+    fetch("/get_alerts")
+    .then(res => res.json())
+    .then(data => {
+        let alertList = document.getElementById("alertList");
+        if(!alertList) return;
+
+        alertList.innerHTML = "";
+        data.alerts.forEach(alert => {
+            let li = document.createElement("li");
+            li.innerText = alert;
+            alertList.appendChild(li);
+        });
+    });
+}, 3000);
+
+
+// ---------------- INITIAL LOAD ----------------
+function fetchStandardCount() {
+    let initialCount = "{{ standard_count }}";
+    if(initialCount && initialCount !== "None") {
+        document.getElementById("stdCountInput").value = initialCount;
+        return;
+    }
+    fetch("/get_standard_count")
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            document.getElementById("stdCountInput").value = data.standard_count;
+        }
+    });
 }
+
+function updateStandardCount() {
+    let newCount = document.getElementById("stdCountInput").value;
+    let status = document.getElementById("stdCountStatus");
+    
+    let formData = new FormData();
+    formData.append("standard_count", newCount);
+    
+    status.innerText = "Updating... ⏳";
+    fetch("/update_standard_count", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            status.innerText = "Updated successfully! ✅";
+            setTimeout(() => status.innerText = "", 3000);
+        } else {
+            status.innerText = "Error: " + data.error;
+        }
+    });
+}
+
+function testEmailManual() {
+    let status = document.getElementById("stdCountStatus");
+    status.innerText = "Sending test email... ⏳";
+    fetch("/test_email_manual")
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            status.innerText = "✅ Test email sent! Check your inbox.";
+        } else {
+            status.innerText = "❌ Error: " + data.error;
+        }
+    });
+}
+
+function startSecurityMonitoring() {
+    let ip = document.getElementById("securityIp").value;
+    if(!ip) { alert("Please enter IP"); return; }
+    
+    let feed = document.getElementById("securityFeed");
+    let placeholder = document.getElementById("securityPlaceholder");
+    
+    feed.src = `/security_stream?ip=${encodeURIComponent(ip)}&t=${new Date().getTime()}`;
+    feed.style.display = "block";
+    placeholder.style.display = "none";
+}
+
+function stopSecurityMonitoring() {
+    document.getElementById("securityFeed").src = "";
+    document.getElementById("securityFeed").style.display = "none";
+    document.getElementById("securityPlaceholder").style.display = "flex";
+}
+
+// Update security logs by reusing the global alerts logic
+function syncSecurityLogs() {
+    fetch("/get_alerts")
+    .then(res => res.json())
+    .then(data => {
+        let logList = document.getElementById("securityLogList");
+        if(!logList) return;
+        
+        let securityAlerts = data.alerts.filter(a => a.includes("SECURITY BREACH"));
+        if(securityAlerts.length > 0) {
+            logList.innerHTML = "";
+            securityAlerts.reverse().forEach(a => {
+                let li = document.createElement("li");
+                li.style.padding = "8px";
+                li.style.borderBottom = "1px solid #eee";
+                li.innerHTML = `<span style="color:#e74c3c;">•</span> ${a}`;
+                logList.appendChild(li);
+            });
+        }
+    });
+}
+setInterval(syncSecurityLogs, 3000); // Polling logs every 3 seconds
+
+// Run on load
+fetchStandardCount();
+
+// ---------------- CHART RENDERING ----------------
+let trendChartInstance = null;
+let sourceChartInstance = null;
+let comparisonChartInstance = null;
+
+function renderCharts(sessions) {
+    if(!sessions || sessions.length === 0) return;
+
+    // Data prep for Trend Chart (Limit to last 10)
+    let sortedSessions = [...sessions].reverse().slice(-10);
+    let labels = sortedSessions.map(s => s.datetime.split(' ')[1]); // Time only
+    let entries = sortedSessions.map(s => s.entry_count);
+    let totals = sortedSessions.map(s => s.total_count);
+
+    // 1. Trend Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    if(trendChartInstance) trendChartInstance.destroy();
+    trendChartInstance = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Livestock Entries',
+                data: entries,
+                borderColor: '#3498db',
+                tension: 0.3,
+                fill: true,
+                backgroundColor: 'rgba(52, 152, 219, 0.1)'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'top' } } }
+    });
+
+    // 2. Source Distribution Chart
+    const sourceCtx = document.getElementById('sourceChart').getContext('2d');
+    let sourceCounts = {};
+    sessions.forEach(s => {
+        sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+    });
+    
+    if(sourceChartInstance) sourceChartInstance.destroy();
+    sourceChartInstance = new Chart(sourceCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(sourceCounts),
+            datasets: [{
+                data: Object.values(sourceCounts),
+                backgroundColor: ['#e74c3c', '#2ecc71', '#f1c40f', '#3498db']
+            }]
+        },
+        options: { responsive: true }
+    });
+
+    // 3. Comparison Chart (Last 5)
+    const compCtx = document.getElementById('comparisonChart').getContext('2d');
+    let lastFive = sortedSessions.slice(-5);
+    
+    if(comparisonChartInstance) comparisonChartInstance.destroy();
+    comparisonChartInstance = new Chart(compCtx, {
+        type: 'bar',
+        data: {
+            labels: lastFive.map(s => s.datetime.split(' ')[1]),
+            datasets: [
+                { label: 'Entry', data: lastFive.map(s => s.entry_count), backgroundColor: '#3498db' },
+                { label: 'Total', data: lastFive.map(s => s.total_count), backgroundColor: '#95a5a6' }
+            ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+// ---------------- SESSIONS ----------------
+function loadSessions() {
+    fetch("/get_sessions")
+    .then(res => res.json())
+    .then(data => {
+        let tbody = document.getElementById("sessionTableBody");
+        if(!tbody || !data.success) return;
+        
+        // Render Charts!
+        renderCharts(data.sessions);
+
+        tbody.innerHTML = "";
+        data.sessions.forEach(s => {
+            let tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="padding:10px; border-bottom:1px solid #eee;">${s.datetime}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${s.source}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${s.duration_mins}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${s.entry_count}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${s.total_count}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+}
+setInterval(loadSessions, 5000);
+loadSessions();
+
+// ---------------- SECTION SWITCH ----------------
+function toggleSidebar() {
+    document.querySelector(".sidebar").classList.toggle("active");
+}
+
+function showSection(id){
+    console.log("Switching to section:", id);
+    
+    // 1. Hide all sections & active menu states
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".sidebar ul li").forEach(m => m.classList.remove("active"));
+    
+    // 2. Show target section
+    const targetSection = document.getElementById(id);
+    const targetMenu = document.getElementById('menu-' + id);
+    
+    if(targetSection) targetSection.classList.add("active");
+    if(targetMenu) targetMenu.classList.add("active");
+    
+    // 3. Close sidebar on mobile
+    if(window.innerWidth <= 768) {
+        document.querySelector(".sidebar").classList.remove("active");
+    }
+}
+
+// Ensure first section is visible on load
+window.addEventListener('DOMContentLoaded', () => {
+    showSection('dashboard');
+    fetchStandardCount();
+});
+
+
+// ---------------- VIDEO UPLOAD ----------------
+let videoInterval = null;
+
+function uploadVideo(){
+    let fileInput = document.getElementById("videoInput");
+    let statusText = document.getElementById("status");
+    let outputVideo = document.getElementById("outputVideo");
+    let videoResult = document.getElementById("videoResult");
+
+    let dashboardTotal = document.getElementById("dashboardTotal");
+    let dashboardStatus = document.getElementById("dashboardStatus");
+
+    if(!fileInput.files.length){
+        alert("Select a video first.");
+        return;
+    }
+
+    let durationMins = document.getElementById("uploadDuration").value;
+    if(!durationMins || durationMins <= 0){
+        alert("Enter session duration in minutes.");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("video", fileInput.files[0]);
+    formData.append("duration", durationMins);
+
+    statusText.innerHTML = "Uploading and analyzing... ⏳";
+    dashboardStatus.innerHTML = "Processing...";
+
+    fetch("/upload_video_ajax", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success){
+
+            // ✅ Show stream
+            outputVideo.src = `/live_upload_stream/${data.filename}?t=${new Date().getTime()}`;
+            outputVideo.style.display = "block";
+            videoResult.style.display = "block";
+
+            statusText.innerHTML = "Processing started ✅";
+
+            // ❌ Stop previous interval
+            if(videoInterval) clearInterval(videoInterval);
+
+            // ✅ SINGLE interval for everything
+            videoInterval = setInterval(() => {
+
+                fetch(`/live_counts?filename=${data.filename}`)
+                .then(res => res.json())
+                .then(countData => {
+
+                    if(countData.success){
+
+                        // 🔥 Update video section
+                        statusText.innerHTML =
+                            `Entry Count: ${countData.entry_count} | Total: ${countData.total_count}`;
+
+                        // 🔥 Update dashboard
+                        if(dashboardTotal){
+                            dashboardTotal.innerText = countData.total_count;
+                        }
+
+                        if(dashboardStatus){
+                            dashboardStatus.innerText = "Processing...";
+                        }
+                    }
+                });
+
+            }, 1000);
+
+        } else {
+            statusText.innerHTML = "Server error ❌ " + (data.error || "");
+            dashboardStatus.innerHTML = "Idle";
+        }
+    })
+    .catch(err => {
+        statusText.innerHTML = "Server error ❌ " + err;
+        dashboardStatus.innerHTML = "Idle";
+    });
+}
+
+
+// ---------------- LIVE CAMERA ----------------
+function startLive() {
+    let ip = document.getElementById("cameraIP").value;
+    let durationMins = document.getElementById("liveDuration").value;
+    let liveStream = document.getElementById("liveStream");
+    let liveStatus = document.getElementById("liveStatus");
+    let liveResult = document.getElementById("liveResult");
+
+    if(!ip){ alert("Enter camera IP"); return; }
+    if(!durationMins || durationMins <= 0){ alert("Enter session duration in minutes."); return; }
+
+    liveStream.src = `/live_stream?ip=${encodeURIComponent(ip)}&duration=${durationMins}&t=${new Date().getTime()}`;
+    liveStream.style.display="block";
+    liveResult.style.display="block";
+    liveStatus.innerHTML="Streaming... ⏳";
+
+    // Poll counts every second
+    liveInterval = setInterval(()=>{
+        fetch(`/live_counts_ip?ip=${encodeURIComponent(ip)}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.success){
+                document.getElementById("liveCounts").innerHTML =
+                    `Entry Count: ${data.entry_count} | Total Cows: ${data.total_count}`;
+            }
+        });
+    },1000);
+}
+
+function stopLive(){
+    clearInterval(liveInterval);
+    document.getElementById("liveStream").style.display="none";
+    document.getElementById("liveResult").style.display="none";
+    document.getElementById("liveStatus").innerHTML="Live stream stopped.";
+    document.getElementById("liveCounts").innerHTML="";
+}
+/*let liveInterval = null;
+
+function startLive(){
+    let ip = document.getElementById("cameraIP").value;
+    let liveStream = document.getElementById("liveStream");
+    let liveStatus = document.getElementById("liveStatus");
+    let liveResult = document.getElementById("liveResult");
+
+    if(!ip){
+        alert("Enter camera IP");
+        return;
+    }
+
+    liveStream.src = `/live_stream?ip=${encodeURIComponent(ip)}`;
+    liveStream.style.display = "block";
+    liveResult.style.display = "block";
+
+    liveStatus.innerHTML = "Streaming... ⏳";
+
+    // stop previous
+    if(liveInterval) clearInterval(liveInterval);
+
+    liveInterval = setInterval(() => {
+
+        fetch(`/live_counts?ip=${encodeURIComponent(ip)}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.success){
+                document.getElementById("liveCounts").innerHTML =
+                    `Entry Count: ${data.entry_count} | Total Cows: ${data.total_count}`;
+            }
+        });
+
+    }, 1000);
+}
+
+
+function stopLive(){
+    clearInterval(liveInterval);
+
+    document.getElementById("liveStream").style.display = "none";
+    document.getElementById("liveResult").style.display = "none";
+    document.getElementById("liveStatus").innerHTML = "Live stream stopped.";
+    document.getElementById("liveCounts").innerHTML = "";
+}*/
 </script>
+
 
 </body>
 </html>
