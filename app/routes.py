@@ -379,14 +379,24 @@ def live_stream():
     def generate():
         import time
         from datetime import datetime
+        nonlocal ip
         start_time = time.time()
         timeout_seconds = duration_mins * 60
         print("📡 Connecting to:", ip)
 
-        cap = cv2.VideoCapture(ip)
-
+        # 🧪 Try to auto-fix common IP Webcam URLs if base URL fails
+        test_cap = cv2.VideoCapture(ip)
+        if not test_cap.isOpened() and ip.startswith("http") and not any(x in ip.lower() for x in ["/video", "/mjpeg", "/stream", ".m3u8", ".mp4"]):
+            alt_ip = ip.rstrip("/") + "/video"
+            print(f"⚠️ Base URL failed, trying common path: {alt_ip}")
+            test_cap = cv2.VideoCapture(alt_ip)
+            if test_cap.isOpened():
+                ip = alt_ip
+                print(f"✅ Success with auto-corrected URL: {ip}")
+        
+        cap = test_cap
         if not cap.isOpened():
-            print("❌ Cannot open stream")
+            print(f"❌ Cannot open stream: {ip}")
             return
 
         # SAME VARIABLES FROM YOUR WORKING CODE
@@ -396,10 +406,20 @@ def live_stream():
         track_states = {}
 
         try:
+            retry_count = 0
+            max_retries = 30 # Prevent infinite loop if stream is dead
+            
             while True:
                 ret, frame = cap.read()
                 if not ret:
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        print(f"❌ Stream {ip} disconnected.")
+                        break
+                    time.sleep(0.1) # Brief pause before retry
                     continue
+                
+                retry_count = 0 # Reset on successful read
 
                 frame = cv2.resize(frame, (640, 480))
 
@@ -474,6 +494,7 @@ def live_stream():
             if not isinstance(e, GeneratorExit):
                 print("❌ Stream error:", e)
         finally:
+            cap.release()
             elapsed_mins = round((time.time() - start_time) / 60.0, 2)
             db.sessions.insert_one({
                 "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -507,11 +528,18 @@ def security_stream():
     def generate():
         import time
         from datetime import datetime
+        nonlocal ip
         print("🛡️ Security Monitoring Active on:", ip)
 
         cap = cv2.VideoCapture(ip)
+        # Try auto-correct here too
+        if not cap.isOpened() and ip.startswith("http") and not any(x in ip.lower() for x in ["/video", "/mjpeg", "/stream"]):
+            alt_ip = ip.rstrip("/") + "/video"
+            cap = cv2.VideoCapture(alt_ip)
+            if cap.isOpened(): ip = alt_ip
+
         if not cap.isOpened():
-            print("❌ Cannot open security stream")
+            print(f"❌ Cannot open security stream: {ip}")
             return
 
         notified_intrusions = set()
@@ -522,10 +550,15 @@ def security_stream():
 
         def stream_logic():
             try:
+                retry_count = 0
                 while True:
                     ret, frame = cap.read()
                     if not ret:
+                        retry_count += 1
+                        if retry_count > 30: break
+                        time.sleep(0.1)
                         continue
+                    retry_count = 0
 
                     frame = cv2.resize(frame, (640, 480))
 
